@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useMemo } from 'react';
+import React, { createContext, useContext, useState, useEffect, useMemo, useRef } from 'react';
 import { useStepCounter } from '@/hooks/useStepCounter';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -18,6 +18,7 @@ interface AuraContextType {
   addCalories: (amount: number) => void;
   userId: string | null;
   isLoading: boolean;
+  stepsJustAdded: boolean;
 }
 
 const AuraContext = createContext<AuraContextType | null>(null);
@@ -27,7 +28,9 @@ export function AuraProvider({ children }: { children: React.ReactNode }) {
   const [userId, setUserId] = useState<string | null>(null);
   const [baseGoal, setBaseGoal] = useState(2000);
   const [caloriesIn, setCaloriesIn] = useState(0);
+  const [stepsJustAdded, setStepsJustAdded] = useState(false);
   const queryClient = useQueryClient();
+  const initialLoadDone = useRef(false);
 
   const today = new Date().toISOString().split('T')[0];
 
@@ -39,7 +42,6 @@ export function AuraProvider({ children }: { children: React.ReactNode }) {
     return () => subscription.unsubscribe();
   }, []);
 
-  // Load profile
   const { isLoading: profileLoading } = useQuery({
     queryKey: ['profile', userId],
     queryFn: async () => {
@@ -51,7 +53,6 @@ export function AuraProvider({ children }: { children: React.ReactNode }) {
     enabled: !!userId,
   });
 
-  // Load today's metrics
   const { isLoading: metricsLoading } = useQuery({
     queryKey: ['daily_metrics', userId, today],
     queryFn: async () => {
@@ -61,12 +62,12 @@ export function AuraProvider({ children }: { children: React.ReactNode }) {
         setManualSteps(data.steps);
         setCaloriesIn(data.calories_in);
       }
+      initialLoadDone.current = true;
       return data;
     },
     enabled: !!userId,
   });
 
-  // Sync metrics to DB
   const syncMetrics = useMutation({
     mutationFn: async ({ s, c }: { s: number; c: number }) => {
       if (!userId) return;
@@ -77,14 +78,20 @@ export function AuraProvider({ children }: { children: React.ReactNode }) {
     },
   });
 
-  // Debounced sync
   useEffect(() => {
-    if (!userId) return;
+    if (!userId || !initialLoadDone.current) return;
     const timer = setTimeout(() => {
       syncMetrics.mutate({ s: steps, c: caloriesIn });
-    }, 1500);
+    }, 800);
     return () => clearTimeout(timer);
   }, [steps, caloriesIn, userId]);
+
+  // Flash stepsJustAdded for glow effect
+  const wrappedAddManualSteps = (count: number) => {
+    addManualSteps(count);
+    setStepsJustAdded(true);
+    setTimeout(() => setStepsJustAdded(false), 1200);
+  };
 
   const dailyTarget = useMemo(() => baseGoal + Math.round(steps * 0.04), [baseGoal, steps]);
   const remainingCalories = useMemo(() => Math.max(0, dailyTarget - caloriesIn), [dailyTarget, caloriesIn]);
@@ -95,8 +102,8 @@ export function AuraProvider({ children }: { children: React.ReactNode }) {
     <AuraContext.Provider value={{
       steps, baseGoal, dailyTarget, caloriesIn, remainingCalories,
       sensorAvailable, permissionGranted, requestPermission,
-      addManualSteps, setManualSteps, setBaseGoal, addCalories,
-      userId, isLoading: profileLoading || metricsLoading,
+      addManualSteps: wrappedAddManualSteps, setManualSteps, setBaseGoal, addCalories,
+      userId, isLoading: profileLoading || metricsLoading, stepsJustAdded,
     }}>
       {children}
     </AuraContext.Provider>

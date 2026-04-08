@@ -32,10 +32,15 @@ export function NutritionPage() {
   const progress = dailyTarget > 0 ? (caloriesIn / dailyTarget) * 100 : 0;
 
   return (
-    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="px-4 pt-6 pb-24">
+    <motion.div
+      initial={{ opacity: 0, x: 40 }}
+      animate={{ opacity: 1, x: 0 }}
+      exit={{ opacity: 0, x: -40 }}
+      transition={{ duration: 0.25, ease: 'easeOut' }}
+      className="px-4 pt-6 pb-24"
+    >
       <h2 className="text-xl font-display font-bold text-foreground mb-4">Nutrition</h2>
 
-      {/* Summary bar */}
       <div className="glass rounded-xl p-4 mb-4">
         <div className="flex justify-between text-sm mb-2">
           <span className="text-muted-foreground">Consumed</span>
@@ -56,7 +61,6 @@ export function NutritionPage() {
         </p>
       </div>
 
-      {/* Food list */}
       <div className="space-y-2 mb-4">
         {entries.length === 0 && (
           <div className="glass rounded-xl p-6 text-center">
@@ -72,7 +76,6 @@ export function NutritionPage() {
         ))}
       </div>
 
-      {/* Quick add */}
       {showForm ? (
         <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="glass rounded-xl p-4 space-y-3">
           <input

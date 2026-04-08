@@ -19,16 +19,18 @@ function ReadinessScore({ steps }: { steps: number }) {
 }
 
 export function HomePage() {
-  const { steps, dailyTarget, caloriesIn, remainingCalories, sensorAvailable, permissionGranted, requestPermission, addManualSteps } = useAura();
+  const { steps, dailyTarget, caloriesIn, remainingCalories, sensorAvailable, permissionGranted, requestPermission, addManualSteps, stepsJustAdded } = useAura();
   const [manualInput, setManualInput] = useState('');
 
   const progress = dailyTarget > 0 ? caloriesIn / dailyTarget : 0;
+  const isLowReadiness = steps <= 4000;
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -10 }}
+      initial={{ opacity: 0, x: 40 }}
+      animate={{ opacity: 1, x: 0 }}
+      exit={{ opacity: 0, x: -40 }}
+      transition={{ duration: 0.25, ease: 'easeOut' }}
       className="flex flex-col items-center gap-6 px-4 pt-6 pb-24"
     >
       <h1 className="text-2xl font-display font-bold text-glow text-primary">AuraFit</h1>
@@ -40,6 +42,8 @@ export function HomePage() {
         label="Calories"
         value={remainingCalories.toLocaleString()}
         sublabel={`${caloriesIn} / ${dailyTarget} kcal`}
+        glowPulse={stepsJustAdded}
+        lowReadiness={isLowReadiness}
       />
 
       <div className="grid grid-cols-3 gap-3 w-full max-w-sm">
@@ -60,7 +64,6 @@ export function HomePage() {
         </div>
       </div>
 
-      {/* Step Input */}
       <div className="glass rounded-xl p-4 w-full max-w-sm">
         <p className="text-xs text-muted-foreground uppercase tracking-wider mb-3">
           {sensorAvailable && permissionGranted ? 'Step Sensor Active' : 'Manual Step Entry'}

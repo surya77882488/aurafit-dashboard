@@ -3,7 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useState } from 'react';
-import { Plus, X, CheckCircle2, Circle, Loader2 } from 'lucide-react';
+import { Plus, X, CheckCircle2, Circle, Loader2, Dumbbell } from 'lucide-react';
 
 const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
@@ -57,11 +57,18 @@ export function WorkoutsPage() {
 
   const todayIndex = new Date().getDay();
   const dayWorkouts = workouts?.filter(w => w.day_of_week === selectedDay) ?? [];
+  const hasAnyWorkouts = (workouts?.length ?? 0) > 0;
 
   if (!userId) return <div className="flex items-center justify-center h-64 text-muted-foreground">Sign in to track workouts</div>;
 
   return (
-    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="px-4 pt-6 pb-24">
+    <motion.div
+      initial={{ opacity: 0, x: 40 }}
+      animate={{ opacity: 1, x: 0 }}
+      exit={{ opacity: 0, x: -40 }}
+      transition={{ duration: 0.25, ease: 'easeOut' }}
+      className="px-4 pt-6 pb-24"
+    >
       <h2 className="text-xl font-display font-bold text-foreground mb-4">Weekly Split</h2>
 
       {/* Timeline */}
@@ -86,6 +93,28 @@ export function WorkoutsPage() {
         })}
       </div>
 
+      {/* Empty state */}
+      {!isLoading && !hasAnyWorkouts && selectedDay === null && (
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="glass rounded-2xl p-8 text-center flex flex-col items-center gap-4"
+        >
+          <div className="w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center">
+            <Dumbbell size={36} className="text-primary" />
+          </div>
+          <div>
+            <p className="text-lg font-display font-bold text-foreground mb-1">Your strength journey starts here</p>
+            <p className="text-sm text-muted-foreground">Tap a day above to add your first exercise!</p>
+          </div>
+          <div className="flex gap-1 mt-2">
+            {[0, 1, 2].map(i => (
+              <div key={i} className="w-1.5 h-1.5 rounded-full bg-primary/40" style={{ animationDelay: `${i * 0.2}s` }} />
+            ))}
+          </div>
+        </motion.div>
+      )}
+
       {/* Workout overlay */}
       <AnimatePresence mode="wait">
         {selectedDay !== null && (
@@ -100,6 +129,12 @@ export function WorkoutsPage() {
                 <Loader2 className="animate-spin text-primary mx-auto" />
               ) : (
                 <>
+                  {dayWorkouts.length === 0 && (
+                    <div className="py-4 text-center">
+                      <p className="text-sm text-muted-foreground mb-1">No workout for {DAYS[selectedDay]} yet</p>
+                      <p className="text-xs text-muted-foreground">Add one below to get started</p>
+                    </div>
+                  )}
                   {dayWorkouts.map(workout => (
                     <div key={workout.id} className="mb-4">
                       <p className="text-sm font-display font-semibold text-primary mb-2">{workout.name}</p>
@@ -114,7 +149,6 @@ export function WorkoutsPage() {
                           <span className="text-xs text-muted-foreground">{ex.completed_sets}/{ex.sets} × {ex.reps}</span>
                         </button>
                       ))}
-                      {/* Add exercise */}
                       <div className="flex gap-2 mt-2">
                         <input placeholder="Exercise" value={newExercise.name} onChange={e => setNewExercise(p => ({ ...p, name: e.target.value }))} className="flex-1 bg-muted rounded-lg px-2 py-1.5 text-sm text-foreground placeholder:text-muted-foreground outline-none" />
                         <input placeholder="Sets" value={newExercise.sets} onChange={e => setNewExercise(p => ({ ...p, sets: e.target.value }))} className="w-12 bg-muted rounded-lg px-2 py-1.5 text-sm text-center text-foreground outline-none" />
@@ -124,7 +158,6 @@ export function WorkoutsPage() {
                     </div>
                   ))}
 
-                  {/* Add workout */}
                   <div className="flex gap-2 mt-3 pt-3 border-t border-border">
                     <input placeholder="New workout name" value={newWorkoutName} onChange={e => setNewWorkoutName(e.target.value)} className="flex-1 bg-muted rounded-lg px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground outline-none" />
                     <button onClick={() => addWorkout.mutate(selectedDay)} className="bg-primary text-primary-foreground rounded-lg px-3 py-2 text-sm font-display font-semibold glow-primary">
